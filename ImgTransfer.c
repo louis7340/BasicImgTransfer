@@ -25,7 +25,7 @@ typedef struct bitmapFileHeader{
 	uint32_t bfSize;	//0X0002
 	uint32_t reserved;	//0X0006
 	uint32_t bfOffSet;	//0X000A
-}BITMAP_FILE_HEADER;
+}__attribute__((packed,aligned(1))) BITMAP_FILE_HEADER;
 
 //40 Bytes for bitmap Info Header
 typedef struct bitmapInfoHeader{
@@ -40,7 +40,7 @@ typedef struct bitmapInfoHeader{
 	uint32_t biYPixPerMeter;	//0X002A
 	uint32_t biUsedClr;			//0X002E
 	uint32_t biImportantClr;	//0X0032
-}BITMAP_INFO_HEADER;
+}__attribute__((packed,aligned(1))) BITMAP_INFO_HEADER;
 //total 54 Bytes
 
 
@@ -80,13 +80,11 @@ int main(void)
 
 	int i;
 	int N=width*height;
+	int DataSize=N*3;
+	int file_size=54+DataSize;	//54 for File Header & Info Header
 	FILE *fw;
 	uint8_t *img=NULL;
-
-	int DataSize=N*3;
 	
-	//54 for 'File Header' & 'Info Header'
-	int file_size=54+DataSize;
 	img=(uint8_t *)malloc(3*N);
 	memset(img,0,sizeof(img));
 
@@ -95,11 +93,7 @@ int main(void)
 	{
 		fscanf(fr,"%f%f%f%f",&tmp,&tmp,&tmp,&RGBdata.f);
 		int x=i%width;
-		int y=(height-1)-i/width;
-		
-		//debug
-		if(RGBdata.r>255 || RGBdata.g>255 || RGBdata.b>255)
-			printf("exceed range!!\n");
+		int y=(height-1)-i/width; //
 			
 		img[(x+y*width)*3+2]=RGBdata.r;
 		img[(x+y*width)*3+1]=RGBdata.g;
@@ -108,6 +102,8 @@ int main(void)
 	fclose(fr);
 
 	//Fill File Header
+
+	/* using array
 	uint8_t bmp_file_header[14]={0};
 	memset(bmp_file_header,0,sizeof(bmp_file_header));
 	bmp_file_header[0]='B';
@@ -117,7 +113,7 @@ int main(void)
 	bmp_file_header[4]=(uint8_t)(file_size>>16);
 	bmp_file_header[5]=(uint8_t)(file_size>>24);
 	bmp_file_header[10]=54;
-
+	*/
 	BITMAP_FILE_HEADER bmpfh;
 	bmpfh.bfType=0x4d42; // 'BM'
 	bmpfh.bfSize=file_size;
@@ -125,24 +121,26 @@ int main(void)
 	bmpfh.bfOffSet=sizeof(BITMAP_FILE_HEADER)+sizeof(BITMAP_INFO_HEADER);//54?
 
 	//Fill Info Header
+	/*using array
 	uint8_t bmp_info_header[40]={0};
 	memset(bmp_info_header,0,sizeof(bmp_info_header));
 	bmp_info_header[0]=40;
-	bmp_info_header[4]=(uint8_t)((width)&0x000000ff);
-	bmp_info_header[5]=(uint8_t)((width>>8)&0x000000ff);
-	bmp_info_header[6]=(uint8_t)((width>>16)&0x000000ff);
-	bmp_info_header[7]=(uint8_t)((width>>24)&0x000000ff);
-	bmp_info_header[8]=(uint8_t)((height)&0x000000ff);
-	bmp_info_header[9]=(uint8_t)((height>>8)&0x000000ff);
-	bmp_info_header[10]=(uint8_t)((height>>16)&0x000000ff);
-	bmp_info_header[11]=(uint8_t)((height>>24)&0x000000ff);
+	bmp_info_header[4]=(uint8_t)(width);
+	bmp_info_header[5]=(uint8_t)(width>>8);
+	bmp_info_header[6]=(uint8_t)(width>>16);
+	bmp_info_header[7]=(uint8_t)(width>>24);
+	bmp_info_header[8]=(uint8_t)(height);
+	bmp_info_header[9]=(uint8_t)(height>>8);
+	bmp_info_header[10]=(uint8_t)(height>>16);
+	bmp_info_header[11]=(uint8_t)(height>>24);
 	bmp_info_header[12]=1;
 	bmp_info_header[14]=24;
-	bmp_info_header[20]=(uint8_t)((DataSize)&0x000000ff);
-	bmp_info_header[21]=(uint8_t)((DataSize>>8)&0x000000ff);
-	bmp_info_header[22]=(uint8_t)((DataSize>>16)&0x000000ff);
-	bmp_info_header[23]=(uint8_t)((DataSize>>24)&0x000000ff);
-	
+	bmp_info_header[20]=(uint8_t)(DataSize);
+	bmp_info_header[21]=(uint8_t)(DataSize>>8);
+	bmp_info_header[22]=(uint8_t)(DataSize>>16);
+	bmp_info_header[23]=(uint8_t)(DataSize>>24);
+	*/
+
 	BITMAP_INFO_HEADER bmpih;
 	bmpih.biHeaderSize=sizeof(BITMAP_INFO_HEADER);
 	bmpih.biWidth=width;
@@ -150,7 +148,7 @@ int main(void)
 	bmpih.biPlanes=1;
 	bmpih.biPerPix=24;
 	bmpih.biCompression=0;//only for 16 or 32 Bits
-	bmpih.biImgSize=N;
+	bmpih.biImgSize=DataSize;
 	bmpih.biXPixPerMeter=0;
 	bmpih.biYPixPerMeter=0;
 	bmpih.biUsedClr=0;
@@ -161,9 +159,11 @@ int main(void)
 	  */
 	fw=fopen("img.bmp","wb");
 	//write headers
-	fwrite(bmp_file_header,1,14,fw);
-	fwrite(bmp_info_header,1,40,fw);
-	printf("FILE HEADER=%lu INFO HEADER=%lu\n",sizeof(bmp_file_header),sizeof(bmp_info_header));	
+	fwrite(&bmpfh,1,14,fw);
+	fwrite(&bmpih,1,40,fw);
+//	fwrite(bmp_file_header,1,14,fw);
+//	fwrite(bmp_info_header,1,40,fw);
+	printf("FILE HEADER=%lu INFO HEADER=%lu\n",sizeof(bmpfh),sizeof(bmpih));	
 	
 	//padding bits
 	uint8_t pad[3]={0,0,0};
