@@ -47,12 +47,13 @@ typedef struct bitmapInfoHeader{
 
 int select_flag=0;
 CvPoint rect[2];
+CvPoint origin;
 IplImage *ori_ipimg=NULL;
 IplImage *mod_ipimg=NULL;
 
 //set rectangle info
 CvScalar Color;
-int Thickness=2;
+int Thickness=1;
 int Shift=0;
 	
 #define min(a,b) ((a)<(b)?(a):(b))
@@ -142,29 +143,35 @@ void onMouse(int event,int x,int y,int flag,void *param)
 	if(select_flag)
 	{
 		//choose first and third points
-		printf("drag\n");
 		int change=0;
-		CvPoint tmp=rect[0];
-		
+	
+		//origin point will not move
 		//first point
-		rect[0].x=min(x,tmp.x);
-		rect[0].y=min(y,tmp.y);
+		rect[0].x=min(x,origin.x);
+		rect[0].y=min(y,origin.y);
 		//third point
-		rect[1].x=max(x,tmp.x);
-		rect[1].y=max(y,tmp.y);
-
-		cvRectangle(ori_ipimg,rect[0],rect[1],Color,Thickness,CV_AA,Shift);
-		cvShowImage("image",ori_ipimg);
+		rect[1].x=max(x,origin.x);
+		rect[1].y=max(y,origin.y);
+		
+		//clone and draw
+		cvReleaseImage(&mod_ipimg);
+		mod_ipimg=cvCloneImage(ori_ipimg);
+		cvRectangle(mod_ipimg,rect[0],rect[1],Color,Thickness,CV_AA,Shift);
+		cvShowImage("image",mod_ipimg);
 	}
 
 	if(event==CV_EVENT_LBUTTONDOWN)
 	{
-	//	printf("click\n");
 		select_flag=1;
 
 		//first point of rectangle
-		rect[0]=rect[1]=cvPoint(x,y);
-		cvRectangle(ori_ipimg,rect[0],rect[1],Color,Thickness,CV_AA,Shift);
+		origin=rect[0]=rect[1]=cvPoint(x,y);
+		
+		//clone and draw
+		cvReleaseImage(&mod_ipimg);
+		mod_ipimg=cvCloneImage(ori_ipimg);
+		cvRectangle(mod_ipimg,rect[0],rect[1],Color,Thickness,CV_AA,Shift);
+		cvShowImage("image",mod_ipimg);
 	}
 	//rectangle complete
 	else if(event==CV_EVENT_LBUTTONUP) 
