@@ -60,7 +60,9 @@ chmod +x build_all.sh
 ./build_all.sh
 ./facedetect lena.jpg 
 ```
+
 ![lena](https://github.com/louis7340/BasicImgTransfer/blob/master/images/lenaopencv.png)
+
 ##Compile
 
 `gcc ImgTransfer.c -o ImgTransfer !`pkg-config --cflags --libs opencv!` `
