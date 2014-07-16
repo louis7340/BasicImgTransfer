@@ -6,19 +6,32 @@
 3.Draw a rectangle and turn rgb info to grayscale value within rectangle
 
 ##Install opencv-2.4.9
-###1. UPDATE AND UPGRADE UBUNTU
+####1. UPDATE AND UPGRADE UBUNTU
+Open your terminal and execute:
 ```
 sudo apt-get update
 sudo apt-get upgrade
 ```
-###2. INSTALL THE DEPENDENCIES
+####2. INSTALL THE DEPENDENCIES
+Now execute:
 ```
 sudo apt-get install build-essential libgtk2.0-dev libjpeg-dev libtiff4-dev libjasper-dev libopenexr-dev cmake python-dev python-numpy python-tk libtbb-dev libeigen2-dev yasm libfaac-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev libx264-dev libqt4-dev libqt4-opengl-dev sphinx-common texlive-latex-extra libv4l-dev libdc1394-22-dev libavcodec-dev libavformat-dev libswscale-dev
 ```
-###3. DOWNLOAD AND DECOMPRESS OPENCV
-###4. COMPILE OPENCV
-###5. CONFIGURE OPENCV
-###6. TRY AN EXAMPLE
+####3. DOWNLOAD AND DECOMPRESS OPENCV
+Enter the [OpenCV official website](http://opencv.org/) and download the latest version for Ubuntu Linux. Then decompress the downloaded file
+
+####4. COMPILE OPENCV
+Now, in your terminal, make sure you are within the OpenCV directory and run the following commands:
+```
+mkdir build
+cd build 
+cmake -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON .. 
+make
+sudo make install 
+```
+####5. CONFIGURE OPENCV
+
+####6. TRY AN EXAMPLE
 ##Compile
 	
 
