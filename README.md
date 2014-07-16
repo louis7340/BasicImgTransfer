@@ -1,7 +1,7 @@
 #Basic Image Processing
 1.Read `.pcd` file and transfer to a bmp file
 
-2.Do vertical flip by pressing 'r' or 'R' 
+2.Do vertical flip by pressing `r` or `R` 
 
 3.Draw a rectangle and turn rgb info to grayscale value within rectangle
 
@@ -61,7 +61,7 @@ chmod +x build_all.sh
 ./facedetect lena.jpg 
 ```
 
-![lena](https://raw.github.com/louis7340/BasicImgTransfer/blob/master/images/lenaopencv.png)
+![lena](https://raw.githubusercontent.com/louis7340/BasicImgTransfer/master/images/lenaopencv.png)
 
 ##Compile
 ```
