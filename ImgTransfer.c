@@ -52,7 +52,7 @@ typedef struct bitmapHeader
 }__attribute__((packed,aligned(1))) BITMAP_HEADER;
 
 int select_flag=0;
-CvPoint rect[2];
+CvPoint rect[2]; //rect[0] for left-up corner ,rect[1] for right-down corner
 CvPoint origin;
 uint8_t *img=NULL;
 IplImage *ori_ipimg=NULL;
@@ -92,6 +92,7 @@ void ReadBMPFile(BITMAP_HEADER *bmph,char FileName[200])
 	fclose(fr);
 }
 
+
 void WriteBMPFile(BITMAP_HEADER bmph,char FileName[200])
 {
 	FILE *fw=fopen(FileName,"wb");
@@ -111,10 +112,9 @@ void WriteBMPFile(BITMAP_HEADER bmph,char FileName[200])
 		fwrite(pad,1,(4-(w*3)%4)%4,fw);
 	}
 	fclose(fw);
-//	printf("[200,200]=%d\n",img[(200+(h-1-200)*w)*3+2]);
-//	printf("write file over\n");
 }
 
+//vertical reverse
 void Reverse(int w,int h)
 {
 	int N=w*h;
@@ -155,7 +155,9 @@ void TurnGrayLevel(BITMAP_HEADER bmph)
 		int x=i%w;
 		int y=i/w;
 		
-		//turn gray
+		//turn gray within the rectangle range
+		//Need to reverse y coordinates since y increase from up to down in draw rectangle
+		//and bmpfile  increase from down to up
 		if(x>=rect[0].x && x<rect[1].x && y>(h-1-rect[1].y) && y<=(h-1-rect[0].y))
 		{
 			cnt++;
@@ -169,8 +171,6 @@ void TurnGrayLevel(BITMAP_HEADER bmph)
 			img[(x+y*w)*3+0]=gl;
 		}
 	}
-//	printf("w=%d h=%d\n",w,h);
-//	printf("in Turn Gray w=%d h=%d from (%d,%d) to (%d,%d) cnt=%d\n",w,h,rect[0].x,rect[0].y,rect[1].x,rect[1].y,cnt);
 }
 
 void onMouse(int event,int x,int y,int flag,void *param)
@@ -289,12 +289,12 @@ int main(void)
 	bmp_file_header[5]=(uint8_t)(file_size>>24);
 	bmp_file_header[10]=54;
 	*/
+
 	BITMAP_HEADER bmph;
-//	BITMAP_FILE_HEADER bmpfh;
 	bmph.bmpfh.bfType=0x4d42; // 'BM'
 	bmph.bmpfh.bfSize=file_size;
 	bmph.bmpfh.reserved=0;
-	bmph.bmpfh.bfOffSet=sizeof(BITMAP_FILE_HEADER)+sizeof(BITMAP_INFO_HEADER);//54?
+	bmph.bmpfh.bfOffSet=sizeof(BITMAP_FILE_HEADER)+sizeof(BITMAP_INFO_HEADER);//54 bytes
 
 	//Fill Info Header
 	/*using array
@@ -317,7 +317,6 @@ int main(void)
 	bmp_info_header[23]=(uint8_t)(DataSize>>24);
 	*/
 
-//	BITMAP_INFO_HEADER bmpih;
 	bmph.bmpih.biHeaderSize=sizeof(BITMAP_INFO_HEADER);
 	bmph.bmpih.biWidth=width;
 	bmph.bmpih.biHeight=height;
@@ -330,6 +329,7 @@ int main(void)
 	bmph.bmpih.biUsedClr=0;
 	bmph.bmpih.biImportantClr=0;
 
+	/*end fill headers*/
 
 	WriteBMPFile(bmph,"img.bmp");
 	
@@ -352,7 +352,7 @@ int main(void)
 			Reverse(bmph.bmpih.biWidth,bmph.bmpih.biHeight);
 			WriteBMPFile(bmph,"img.bmp");
 		}
-		else if(key_input=='q' || key_input=='Q')
+		else if(key_input=='q' || key_input=='Q')//quit
 		{
 			WriteBMPFile(bmph,"img.bmp");
 			break;
