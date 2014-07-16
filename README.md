@@ -1,7 +1,7 @@
 #Basic Image Processing
-	1.Read `.pcd` file and transfer to a bmp file
-	2.Do flip vertical by pressing 'r' or 'R' 
-	3.Draw a rectangle and turn rgb info to grayscale value within rectangle
+1.Read `.pcd` file and transfer to a bmp file
+2.Do flip vertical by pressing 'r' or 'R' 
+3.Draw a rectangle and turn rgb info to grayscale value within rectangle
 
 ##Install opencv-2.4.9
 ###1. UPDATE AND UPGRADE UBUNTU
