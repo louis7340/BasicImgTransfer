@@ -65,7 +65,7 @@ chmod +x build_all.sh
 
 ##Compile
 ```
-gcc ImgTransfer.c -o ImgTransfer `pkg-config --cflags --libs opencv!`
+gcc ImgTransfer.c -o ImgTransfer `pkg-config --cflags --libs opencv`
 ```	
 
 ##Operation
