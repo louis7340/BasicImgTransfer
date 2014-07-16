@@ -63,7 +63,7 @@ chmod +x build_all.sh
 ![lena](https://github.com/louis7340/BasicImgTransfer/blob/master/images/lenaopencv.png "lena")
 ##Compile
 
-`gcc ImgTransfer.c -o ImgTransfer `pkg-config --cflags --libs opencv`
+`gcc ImgTransfer.c -o ImgTransfer \`pkg-config --cflags --libs opencv\` `
 	
 
 
