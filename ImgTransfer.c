@@ -43,11 +43,18 @@ typedef struct bitmapInfoHeader{
 	uint32_t biUsedClr;			//0X002E
 	uint32_t biImportantClr;	//0X0032
 }__attribute__((packed,aligned(1))) BITMAP_INFO_HEADER;
-//total 54 Bytes
+
+//Header , total 54 Bytes
+typedef struct bitmapHeader
+{
+	BITMAP_FILE_HEADER bmpfh;
+	BITMAP_INFO_HEADER bmpih;
+}__attribute__((packed,aligned(1))) BITMAP_HEADER;
 
 int select_flag=0;
 CvPoint rect[2];
 CvPoint origin;
+uint8_t *img=NULL;
 IplImage *ori_ipimg=NULL;
 IplImage *mod_ipimg=NULL;
 
@@ -60,50 +67,41 @@ int Shift=0;
 #define max(a,b) ((a)>(b)?(a):(b))
 
 
-void ReadBMPFile(BITMAP_FILE_HEADER *bmpfh,BITMAP_INFO_HEADER *bmpih,uint8_t **img,char FileName[200])
+void ReadBMPFile(BITMAP_HEADER *bmph,char FileName[200])
 {
 	FILE *fr=fopen(FileName,"rb");
-	BITMAP_FILE_HEADER *ptr_bmpfh=bmpfh;
-	BITMAP_INFO_HEADER *ptr_bmpih=bmpih;
-
-	fread(ptr_bmpfh,1,14,fr);
-	fread(ptr_bmpih,1,40,fr);
+	fread(bmph,1,54,fr);
 	
-	
-	int w=bmpih->biWidth;
-	int h=bmpih->biHeight;
+	int w=bmph->bmpih.biWidth;
+	int h=bmph->bmpih.biHeight;
 	int N=w*h;
 	int DataSize=3*N;
-	
 
-	if(*img) free(*img);
-	*img=(uint8_t *)malloc(DataSize);
+	if(img) free(img);
+	img=(uint8_t *)malloc(DataSize);
 	
 	//read RGBData if mode==1
 	uint8_t pad[3];
 	int i;
 	for(i=0;i<h;i++)
 	{
-		fread(*img+(w*i*3),3,w,fr);
+		fread(img+(w*i*3),3,w,fr);
 		//padding bits
 		fread(pad,1,(4-(w*3)%4)%4,fr);
 	}
 	fclose(fr);
 }
 
-void WriteBMPFile(BITMAP_FILE_HEADER bmpfh,BITMAP_INFO_HEADER bmpih,uint8_t *img,char FileName[200])
+void WriteBMPFile(BITMAP_HEADER bmph,char FileName[200])
 {
 	FILE *fw=fopen(FileName,"wb");
 
-	fwrite(&bmpfh,1,14,fw);
-	fwrite(&bmpih,1,40,fw);
+	fwrite(&bmph,1,54,fw);
 	
-	
-	int w=bmpih.biWidth;
-	int h=bmpih.biHeight;
+	int w=bmph.bmpih.biWidth;
+	int h=bmph.bmpih.biHeight;
 	int N=w*h;
 	int DataSize=3*N;
-	
 	uint8_t pad[3]={0,0,0};
 	int i;
 	for(i=0;i<h;i++)
@@ -113,9 +111,11 @@ void WriteBMPFile(BITMAP_FILE_HEADER bmpfh,BITMAP_INFO_HEADER bmpih,uint8_t *img
 		fwrite(pad,1,(4-(w*3)%4)%4,fw);
 	}
 	fclose(fw);
+//	printf("[200,200]=%d\n",img[(200+(h-1-200)*w)*3+2]);
+//	printf("write file over\n");
 }
 
-void Reverse(uint8_t *img,int w,int h)
+void Reverse(int w,int h)
 {
 	int N=w*h;
 	int DataSize=3*N;
@@ -137,6 +137,41 @@ void Reverse(uint8_t *img,int w,int h)
 	free(tmp);
 }
 
+void TurnGrayLevel(BITMAP_HEADER bmph)
+{
+	int w=bmph.bmpih.biWidth;
+	int h=bmph.bmpih.biHeight;
+	int N=w*h;
+	int DataSize=3*N;
+	
+
+	int i;
+
+	int cnt=0;
+
+	//gray level
+	for(i=0;i<N;i++)
+	{
+		int x=i%w;
+		int y=i/w;
+		
+		//turn gray
+		if(x>=rect[0].x && x<rect[1].x && y>(h-1-rect[1].y) && y<=(h-1-rect[0].y))
+		{
+			cnt++;
+			int r=img[(x+y*w)*3+2];
+			int g=img[(x+y*w)*3+1];
+			int b=img[(x+y*w)*3+0];
+			
+			int gl=(r+g+b)/3;
+			img[(x+y*w)*3+2]=gl;
+			img[(x+y*w)*3+1]=gl;
+			img[(x+y*w)*3+0]=gl;
+		}
+	}
+//	printf("w=%d h=%d\n",w,h);
+//	printf("in Turn Gray w=%d h=%d from (%d,%d) to (%d,%d) cnt=%d\n",w,h,rect[0].x,rect[0].y,rect[1].x,rect[1].y,cnt);
+}
 
 void onMouse(int event,int x,int y,int flag,void *param)
 {
@@ -152,7 +187,6 @@ void onMouse(int event,int x,int y,int flag,void *param)
 		//third point
 		rect[1].x=max(x,origin.x);
 		rect[1].y=max(y,origin.y);
-		
 		//clone and draw
 		cvReleaseImage(&mod_ipimg);
 		mod_ipimg=cvCloneImage(ori_ipimg);
@@ -176,8 +210,15 @@ void onMouse(int event,int x,int y,int flag,void *param)
 	//rectangle complete
 	else if(event==CV_EVENT_LBUTTONUP) 
 	{
-	//	printf("over\n");
 		select_flag=0;
+		BITMAP_HEADER *bmph=(BITMAP_HEADER *)param;
+		TurnGrayLevel(*bmph);
+		WriteBMPFile(*bmph,"img.bmp");
+		//release
+		cvReleaseImage(&ori_ipimg);
+		ori_ipimg=cvLoadImage("img.bmp",1);
+		cvShowImage("image",ori_ipimg);
+
 	}
 }
 
@@ -218,9 +259,8 @@ int main(void)
 	int DataSize=N*3;
 	int file_size=54+DataSize;	//54 for File Header & Info Header
 	FILE *fw;
-	uint8_t *img=NULL;
 	
-	img=(uint8_t *)malloc(3*N);
+	img=(uint8_t *)malloc(DataSize);
 	memset(img,0,sizeof(img));
 
 	//start read RGB info
@@ -249,11 +289,12 @@ int main(void)
 	bmp_file_header[5]=(uint8_t)(file_size>>24);
 	bmp_file_header[10]=54;
 	*/
-	BITMAP_FILE_HEADER bmpfh;
-	bmpfh.bfType=0x4d42; // 'BM'
-	bmpfh.bfSize=file_size;
-	bmpfh.reserved=0;
-	bmpfh.bfOffSet=sizeof(BITMAP_FILE_HEADER)+sizeof(BITMAP_INFO_HEADER);//54?
+	BITMAP_HEADER bmph;
+//	BITMAP_FILE_HEADER bmpfh;
+	bmph.bmpfh.bfType=0x4d42; // 'BM'
+	bmph.bmpfh.bfSize=file_size;
+	bmph.bmpfh.reserved=0;
+	bmph.bmpfh.bfOffSet=sizeof(BITMAP_FILE_HEADER)+sizeof(BITMAP_INFO_HEADER);//54?
 
 	//Fill Info Header
 	/*using array
@@ -276,50 +317,50 @@ int main(void)
 	bmp_info_header[23]=(uint8_t)(DataSize>>24);
 	*/
 
-	BITMAP_INFO_HEADER bmpih;
-	bmpih.biHeaderSize=sizeof(BITMAP_INFO_HEADER);
-	bmpih.biWidth=width;
-	bmpih.biHeight=height;
-	bmpih.biPlanes=1;
-	bmpih.biPerPix=24;
-	bmpih.biCompression=0;//only for 16 or 32 Bits
-	bmpih.biImgSize=DataSize;
-	bmpih.biXPixPerMeter=0;
-	bmpih.biYPixPerMeter=0;
-	bmpih.biUsedClr=0;
-	bmpih.biImportantClr=0;
+//	BITMAP_INFO_HEADER bmpih;
+	bmph.bmpih.biHeaderSize=sizeof(BITMAP_INFO_HEADER);
+	bmph.bmpih.biWidth=width;
+	bmph.bmpih.biHeight=height;
+	bmph.bmpih.biPlanes=1;
+	bmph.bmpih.biPerPix=24;
+	bmph.bmpih.biCompression=0;//only for 16 or 32 Bits
+	bmph.bmpih.biImgSize=DataSize;
+	bmph.bmpih.biXPixPerMeter=0;
+	bmph.bmpih.biYPixPerMeter=0;
+	bmph.bmpih.biUsedClr=0;
+	bmph.bmpih.biImportantClr=0;
 
 
-	WriteBMPFile(bmpfh,bmpih,img,"img.bmp");
+	WriteBMPFile(bmph,"img.bmp");
 	
 
 	Color=CV_RGB(255,0,0);
 	cvNamedWindow("image",1);
-	cvSetMouseCallback("image",onMouse,0);
+	cvSetMouseCallback("image",onMouse,&bmph);
 	//Diasplay
 	while(1)
 	{
 		//show image
-		cvResizeWindow("image",bmpih.biWidth,bmpih.biHeight);
-		
 		ori_ipimg=cvLoadImage("img.bmp",1);
-
 		cvShowImage("image",ori_ipimg);
+		
 		char key_input=cvWaitKey(0);
 		//do reverse
 		if(key_input=='R' || key_input=='r')
 		{
-			ReadBMPFile(&bmpfh,&bmpih,&img,"img.bmp");
-			Reverse(img,bmpih.biWidth,bmpih.biHeight);
-			WriteBMPFile(bmpfh,bmpih,img,"img.bmp");
+			ReadBMPFile(&bmph,"img.bmp");
+			Reverse(bmph.bmpih.biWidth,bmph.bmpih.biHeight);
+			WriteBMPFile(bmph,"img.bmp");
 		}
 		else if(key_input=='q' || key_input=='Q')
 		{
+			WriteBMPFile(bmph,"img.bmp");
 			break;
 		}
 	}
 	cvDestroyWindow("image");
-//	cvReleaseImage(&ipimg);
+	cvReleaseImage(&ori_ipimg);
+	cvReleaseImage(&mod_ipimg);
 
 	return 0;
 }
