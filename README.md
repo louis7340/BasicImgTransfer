@@ -31,15 +31,19 @@ sudo make install
 ```
 ####5. CONFIGURE OPENCV
 In your terminal, execute:
+
 `sudo gedit /etc/ld.so.conf.d/opencv.conf`
 
 Add the following line and save it:
+
 `/usr/local/lib`
 
 Now, in your terminal, execute:
+
 `sudo ldconfig`
 
 Again, execute:
+
 `sudo gedit /etc/bash.bashrc`
 
 Add the following two lines at the end of the file and save it:
@@ -49,6 +53,13 @@ export PKG_CONFIG_PATH
 ```
 Finally, reboot your computer.
 ####6. TRY AN EXAMPLE
+To test an example, from your terminal enters in the OpenCV folder. Once you're inside it enters in samples/c.
+Now, execute:
+```
+chmod +x build_all.sh
+./build_all.sh
+./facedetect lena.jpg 
+```
 ##Compile
 	
 
