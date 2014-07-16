@@ -30,7 +30,24 @@ make
 sudo make install 
 ```
 ####5. CONFIGURE OPENCV
+In your terminal, execute:
+`sudo gedit /etc/ld.so.conf.d/opencv.conf`
 
+Add the following line and save it:
+`/usr/local/lib`
+
+Now, in your terminal, execute:
+`sudo ldconfig`
+
+Again, execute:
+`sudo gedit /etc/bash.bashrc`
+
+Add the following two lines at the end of the file and save it:
+```
+PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig
+export PKG_CONFIG_PATH
+```
+Finally, reboot your computer.
 ####6. TRY AN EXAMPLE
 ##Compile
 	
