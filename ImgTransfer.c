@@ -66,6 +66,21 @@ int Shift=0;
 #define min(a,b) ((a)<(b)?(a):(b))
 #define max(a,b) ((a)>(b)?(a):(b))
 
+void CopyToIplImage(int w,int h)
+{
+	int i,j;
+	int ww=ori_ipimg->widthStep;
+	int hh=ori_ipimg->height;
+	for(i=0;i<h;i++)
+	{
+		for(j=0;j<w;j++)
+		{
+			ori_ipimg->imageData[(i*w+j)*3+2]=img[((h-1-i)*w+j)*3+2];//r
+			ori_ipimg->imageData[(i*w+j)*3+1]=img[((h-1-i)*w+j)*3+1];//g
+			ori_ipimg->imageData[(i*w+j)*3+0]=img[((h-1-i)*w+j)*3+0];//b
+		}
+	}
+}
 
 void ReadBMPFile(BITMAP_HEADER *bmph,char FileName[200])
 {
@@ -137,7 +152,7 @@ void Reverse(int w,int h)
 	free(tmp);
 }
 
-void TurnGrayLevel(BITMAP_HEADER bmph)
+void TurnGrayScale(BITMAP_HEADER bmph)
 {
 	int w=bmph.bmpih.biWidth;
 	int h=bmph.bmpih.biHeight;
@@ -149,13 +164,13 @@ void TurnGrayLevel(BITMAP_HEADER bmph)
 
 	int cnt=0;
 
-	//gray level
+	//grayscale value
 	for(i=0;i<N;i++)
 	{
 		int x=i%w;
 		int y=i/w;
 		
-		//turn gray within the rectangle range
+		//turn gray scale within the rectangle range
 		//Need to reverse y coordinates since y increase from up to down in draw rectangle
 		//and bmpfile  increase from down to up
 		if(x>=rect[0].x && x<rect[1].x && y>(h-1-rect[1].y) && y<=(h-1-rect[0].y))
@@ -212,11 +227,8 @@ void onMouse(int event,int x,int y,int flag,void *param)
 	{
 		select_flag=0;
 		BITMAP_HEADER *bmph=(BITMAP_HEADER *)param;
-		TurnGrayLevel(*bmph);
-		WriteBMPFile(*bmph,"img.bmp");
-		//release
-		cvReleaseImage(&ori_ipimg);
-		ori_ipimg=cvLoadImage("img.bmp",1);
+		TurnGrayScale(*bmph);
+		CopyToIplImage(bmph->bmpih.biWidth,bmph->bmpih.biHeight);
 		cvShowImage("image",ori_ipimg);
 
 	}
@@ -262,20 +274,20 @@ int main(void)
 	
 	img=(uint8_t *)malloc(DataSize);
 	memset(img,0,sizeof(img));
-
+	
 	//start read RGB info
 	for(i=0;i<N;i++)
 	{
 		fscanf(fr,"%f%f%f%f",&tmp,&tmp,&tmp,&RGBdata.f);
 		int x=i%width;
-		int y=(height-1)-i/width; //
+		int y=(height-1)-i/width;
 			
 		img[(x+y*width)*3+2]=RGBdata.r;
 		img[(x+y*width)*3+1]=RGBdata.g;
 		img[(x+y*width)*3+0]=RGBdata.b;
 	}
 	fclose(fr);
-
+	
 	//Fill File Header
 
 	/* using array
@@ -329,39 +341,44 @@ int main(void)
 	bmph.bmpih.biUsedClr=0;
 	bmph.bmpih.biImportantClr=0;
 
-	/*end fill headers*/
-
+	/*end of filling headers*/
 	WriteBMPFile(bmph,"img.bmp");
 	
 
 	Color=CV_RGB(255,0,0);
-	cvNamedWindow("image",1);
+	ori_ipimg=cvLoadImage("img.bmp",1);
+	cvNamedWindow("image",2);
+	cvResizeWindow("image",1200,1200);
 	cvSetMouseCallback("image",onMouse,&bmph);
+
+	
 	//Diasplay
 	while(1)
 	{
 		//show image
-		ori_ipimg=cvLoadImage("img.bmp",1);
 		cvShowImage("image",ori_ipimg);
-		
 		char key_input=cvWaitKey(0);
-		//do reverse
-		if(key_input=='R' || key_input=='r')
+		
+		if(key_input=='r' || key_input=='R')//do reverse
 		{
-			ReadBMPFile(&bmph,"img.bmp");
 			Reverse(bmph.bmpih.biWidth,bmph.bmpih.biHeight);
-			WriteBMPFile(bmph,"img.bmp");
+			CopyToIplImage(bmph.bmpih.biWidth,bmph.bmpih.biHeight);
 		}
 		else if(key_input=='q' || key_input=='Q')//quit
 		{
-			WriteBMPFile(bmph,"img.bmp");
 			break;
 		}
+		else if(key_input=='s' || key_input=='S')//save file
+		{
+			WriteBMPFile(bmph,"img.bmp");
+		}
 	}
-	cvDestroyWindow("image");
+
+	//release
 	cvReleaseImage(&ori_ipimg);
 	cvReleaseImage(&mod_ipimg);
-
+	if(img) free(img);
+	cvDestroyWindow("image");
 	return 0;
 }
 
